@@ -49,18 +49,33 @@ class LineAPI(object):
     revision    = 0
     certificate = ""
 
+    _session = requests.session()
     _headers = {}
-
-    def __init__(self):
-        object.__init__(self)
-        self._session = requests.session()
 
     def ready(self):
         """
         After login, make `client` and `client_in` instance
         to communicate with LINE server
         """
-        raise Exception("Code is removed because of the request of LINE corporation")
+        #raise Exception("Code is removed because of the request of LINE corporation")
+        
+        self._headers['Connection'] = "keep-alive" 
+        
+        self.transport    = THttpClient.THttpClient(self.LINE_HTTP_IN_URL)
+        self.transport_in = THttpClient.THttpClient(self.LINE_HTTP_IN_URL)
+        
+        self.transport.setCustomHeaders(self._headers)
+        self.transport_in.setCustomHeaders(self._headers)
+        
+        self.protocol    = TCompactProtocol.TCompactProtocol(self.transport)
+        self.protocol_in = TCompactProtocol.TCompactProtocol(self.transport_in)
+        
+        self._client    = CurveThrift.Client(self.protocol)
+        self._client_in = CurveThrift.Client(self.protocol_in)
+        
+        self.transport.open()
+        self.transport_in.open()
+        
 
     def updateAuthToken(self):
         """
@@ -89,6 +104,11 @@ class LineAPI(object):
         else: # NAVER
             j = self._get_json(self.LINE_SESSION_NAVER_URL)
 
+        os_version = "1.4.1"
+        user_agent = "CHROMEOS:WIN:%s(1)" % (os_version)
+        app = "CHROMEOS\t%s\tChrome_OS\t1" % (os_version)
+        self._headers['User-Agent']         = user_agent
+        self._headers['X-Line-Application'] = app
         session_key = j['session_key']
         message     = (chr(len(session_key)) + session_key +
                        chr(len(self.id)) + self.id +
@@ -279,10 +299,6 @@ class LineAPI(object):
     def _acceptGroupInvitation(self, groupId, seq=0):
         """Accept a group invitation"""
         return self._client.acceptGroupInvitation(seq, groupId)
-
-    def _kickoutFromGroup(self, groupId, contactIds=[], seq=0):
-        """Kick a group members"""
-        return self._client.kickoutFromGroup(seq, groupId, contactIds)
 
     def _cancelGroupInvitation(self, groupId, contactIds=[], seq=0):
         """Cancel a group invitation"""

@@ -120,7 +120,7 @@ class LineBase(object):
         data = {
             'params': json.dumps(params)
         }
-        r = self._client.post_content('https://os.line.naver.jp/talk/m/upload.nhn', data=data, files=files)
+        r = self._client.post_content('http://os.line.naver.jp/talk/m/upload.nhn', data=data, files=files)
         if r.status_code != 201:
             raise Exception('Upload image failure.')
         #r.content
@@ -142,65 +142,6 @@ class LineBase(object):
 
         try:
             self.sendImage(path)
-        except Exception as e:
-            raise e
-
-    def sendFile(self, path, name = ''):
-        """Send a File
-
-        :param path: local path of File to send
-        """
-        if name != '':
-          file_name = name
-        else:
-          import ntpath
-          file_name = ntpath.basename(path)
-        message = Message(to=self.id, text=None)
-        message.contentType = 14
-        message.contentPreview = None
-        file_size = len(open(path, 'rb').read())
-        message.contentMetadata = {
-            'FILE_NAME': str(file_name),
-            'FILE_SIZE': str(file_size),
-        }
-
-        message_id = self._client.sendMessage(message).id
-        files = {
-            'file': open(path, 'rb'),
-        }
-        params = {
-            'name': file_name,
-            'oid': message_id,
-            'size': file_size,
-            'type': 'file',
-            'ver': '1.0',
-        }
-        data = {
-            'params': json.dumps(params)
-        }
-        r = self._client.post_content('https://os.line.naver.jp/talk/m/upload.nhn', data=data, files=files)
-        if r.status_code != 201:
-            raise Exception('Upload File failure.')
-        #r.content
-        return True
-
-    def sendFileWithURL(self, url, name = ''):
-        """Send a File with given File url
-
-        :param url: File url to send
-        """
-        from urlparse import urlparse
-        from os.path import basename
-        import urllib2
-
-        if name == '':
-          name = basename(urlparse(url).path)
-        file = urllib2.urlopen(url)
-        output = open('pythonLine.data','wb')
-        output.write(file.read())
-        output.close()
-        try:
-            self.sendFile('pythonLine.data', name)
         except Exception as e:
             raise e
 
@@ -262,12 +203,14 @@ class LineGroup(LineBase):
         except:
             self.creator = None
 
-        self.members = [LineContact(client, member) for member in group.members]
+        self.members = []
+        for member in group.members:
+            self.members.append(LineContact(client, member))
 
-        try:
-            self.invitee = [LineContact(client, member) for member in group.invitee]
-        except TypeError:
-            self.invitee = []
+        self.invitee = []
+        if group.invitee:
+            for member in group.invitee:
+                self.invitee.append(LineContact(client, member))
 
     def acceptGroupInvitation(self):
         if not self.is_joined:
@@ -322,7 +265,9 @@ class LineRoom(LineBase):
 
         self.id = room.mid
 
-        self.contacts = [LineContact(client, contact) for contact in room.contacts]
+        self.contacts = []
+        for contact in room.contacts:
+            self.contacts.append(LineContact(client, contact))
 
     def leave(self):
         """Leave room"""
@@ -373,19 +318,27 @@ class LineContact(LineBase):
     @property
     def profileImage(self):
         """Link for profile image"""
-        return "http://dl.profile.line.naver.jp" + self._contact.picturePath
+        return "https://dl.profile.line.naver.jp" + self._contact.picturePath
 
     @property
     def rooms(self):
         """Rooms that contact participates"""
-        rooms = [room for room in self._client.rooms if self.id in room.getContactIds()]
+        rooms = []
+
+        for room in self._client.rooms:
+            if self.id in room.getContactIds():
+                rooms.append(room)
 
         return rooms
 
     @property
     def groups(self):
         """Groups that contact participates"""
-        groups = [group for group in self._client.groups if self.id in group.getMemberIds()]
+        groups = []
+
+        for group in self._client.groups:
+            if self.id in group.getMemberIds():
+                groups.append(room)
 
         return groups
 
