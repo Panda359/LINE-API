@@ -1,5 +1,13 @@
 Saixiii - https://saixiii.com
 
+https://saixiii.com/line-robot-unofficial/
+https://saixiii.com/chapter1-line-bot-python-api-official/
+https://saixiii.com/chapter2-line-api-official/
+https://saixiii.com/chapter3-line-api-reference/
+https://saixiii.com/chapter4-line-api-webhook/
+https://saixiii.com/chapter5-line-api-send-message/
+https://saixiii.com/chapter6-line-python-sdk/
+
 credit : carpedm20
 
 LINE
